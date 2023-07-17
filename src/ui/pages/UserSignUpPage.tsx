@@ -19,21 +19,26 @@ export const UserSignUpPage = () => {
     const navigate = useNavigate()
     const [isValidateOn, setIsValidateOn] = useState(false);
     const [showPassword, setShowPassword] = useState(false)
+    const [isLoading, setIsLoading] = useState(false);
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword)
     }
     const handleSubmit = async (values: SignUp) => {
+        setIsLoading(true)
+
 
         const response = await AxiosInstance.post("/auth/sign-up", values)
 
         if (response.data.success) {
             console.log(response.data.message, '>>>>>>>>>>>>>>')
             toast.success(response.data.message)
+            setIsLoading(false)
             navigate("/")
         }
         else {
             console.log(response.data.message, '>>>>>>>>>>>>>>')
+            setIsLoading(false)
             toast.error(response.data.message)
         }
     }
@@ -168,8 +173,10 @@ export const UserSignUpPage = () => {
                                     type="submit"
                                     onClick={() => setIsValidateOn(true)}
                                     className="w-full px-4 py-2 text-white font-medium bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-600 rounded-lg duration-150"
+                                    disabled={isLoading}
                                 >
-                                    Create account
+                                    {isLoading ? "Loading..." : "Sign up"}
+
                                 </button>
                             </form>
                         )}

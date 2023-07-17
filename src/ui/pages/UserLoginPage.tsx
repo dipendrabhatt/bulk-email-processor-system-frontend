@@ -18,26 +18,32 @@ export const UserLoginPage = () => {
     const navigate = useNavigate()
     const [isValidateOn, setIsValidateOn] = useState(false);
     const [showPassword, setShowPassword] = useState(false)
+    const [isLoading, setIsLoading] = useState(false);
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword)
     }
 
     const handleSubmit = async (values: SignIn) => {
+        setIsLoading(true)
 
         const result = await AxiosInstance.post("/auth/login", values)
-        console.log(result)
+
 
         if (result.data.success) {
             console.log(result.data.message, '>>>>>>>>>>>>>>')
             toast.success(result.data.message)
             localStorage.setItem("token", result?.data?.data?.token)
             localStorage.setItem("user", JSON.stringify(result?.data?.data?.user))
+            setIsLoading(false)
+
             navigate("/home")
         }
         else {
             console.log(result.data.message, '>>>>>>>>>>>>>>')
+            setIsLoading(false)
             toast.error(result.data.message)
+
         }
     }
 
@@ -120,8 +126,9 @@ export const UserLoginPage = () => {
                                     type="submit"
                                     onClick={() => setIsValidateOn(true)}
                                     className="w-full px-4 py-2 text-white font-medium bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-600 rounded-lg duration-150"
+                                    disabled={isLoading} // Disable the button while loading
                                 >
-                                    Sign in
+                                    {isLoading ? "Loading..." : "Sign in"}
                                 </button>
 
                             </form>
