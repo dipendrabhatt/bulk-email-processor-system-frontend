@@ -2,8 +2,10 @@ import { useEffect, useState } from "react"
 import { MdNotifications } from 'react-icons/md'
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
+import io from 'socket.io-client'
 import AxiosInstance from "../../api"
 import { PrivateAxiosInstance } from "../../api/privateAxios"
+import url from "../../constants/url"
 
 interface Template {
     id: string,
@@ -20,16 +22,56 @@ export const Homepage = () => {
     const [excelFile, setExcelFile] = useState<File | null>(null)
     const [selectedExcel, setSelectedExcel] = useState<File | null>(null)
     const [emailLog, setEmailLog] = useState(false)
+    const [fetchedEmailLog, setFetchedEmailLog] = useState<any>()
 
     const [templates, setTemplates] = useState<Template[]>()
+    const socket = io(url.REACT_APP_BASE_URL);
+
+    const [count, setCount] = useState(0);
+
+
+
+    const handleFetchEmailLog = async () => {
+        const result = await PrivateAxiosInstance.get('/email-logs')
+        console.log(result)
+
+        if (result.data.success) {
+            toast.success(result.data.message)
+            setFetchedEmailLog(result.data.data)
+            setEmailLog(false)
+        }
+        else {
+            toast.error(result.data.message)
+
+        }
+
+    }
+
+    useEffect(() => {
+        if (emailLog) {
+            handleFetchEmailLog()
+        }
+    }, [emailLog])
+
+
+    const [emailLogs, setEmailLogs] = useState([]);
+
+    useEffect(() => {
+        // Listen for 'email-logs' event from the backend
+        socket.on('email-logs', (logs) => {
+            console.log(logs, "<<<<<<<<");
+            setEmailLogs(logs);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
 
 
     const navigate = useNavigate()
-    const user = JSON.parse(localStorage.getItem("user") || '{}')
-
-
-
+    const user = JSON.parse(localStorage.getItem("user") as any)
 
     const openModal = () => {
         setIsOpen(true);
@@ -114,15 +156,21 @@ export const Homepage = () => {
                     <div className={`flex-1 justify-self-center pb-3 mt-8 md:block md:pb-0 md:mt-0 ${state ? 'block' : 'hidden'}`}>
                         <ul className="justify-center items-center space-y-8 md:flex md:space-x-6 md:space-y-0">
                             {
-                                <li className="text-gray-600 hover:text-indigo-600">
-                                    <a onClick={() => setEmailLog(true)}>
+                                <li className="text-gray-600 hover:text-indigo-600 cursor-pointer">
+                                    <a onClick={() => {
+                                        setEmailLog(true)
+                                        setSendEmail(false)
+                                    }}>
                                         Email Log
                                     </a>
                                 </li>
                             }
                             <li className="text-gray-600 hover:text-indigo-600 cursor-pointer">
                                 <a
-                                    onClick={() => setSendEmail(true)}
+                                    onClick={() => {
+                                        setSendEmail(true)
+                                        setEmailLog(false)
+                                    }}
                                 >
                                     Send Email
                                 </a>
@@ -150,8 +198,10 @@ export const Homepage = () => {
                         <ul>
                             <li className="text-gray-600 flex align-middle mt-3 hover:text-indigo-600 cursor-pointer">
                                 <div className="relative">
-                                    <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1">
-                                        5
+                                    <span
+                                        onClick={() => setFetchedEmailLog(emailLogs)}
+                                        className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1">
+                                        {emailLogs?.length || ''}
                                     </span>
                                     <a>
                                         <MdNotifications size={30} />
@@ -162,6 +212,36 @@ export const Homepage = () => {
                     </div>
                 </div>
             </nav>
+
+            {fetchedEmailLog && !excelUpload && !sendEmail && (
+                <div className=" mx-auto">
+                    <h5 className="text-xl font-bold mb-4  flex justify-center">Email Log</h5>
+                    <div className=" gap-4  flex justify-center ">
+                        <table className="table-auto">
+                            <thead>
+                                <tr>
+                                    <th className="px-4 py-2">S.No</th>
+                                    <th className="px-4 py-2">Email</th>
+                                    <th className="px-4 py-2">Status</th>
+                                    <th className="px-4 py-2">SentTime</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {fetchedEmailLog?.map((log: any, idx: number) => (
+                                    <tr key={idx}>
+                                        <td className="border px-4 py-2">{idx + 1}</td>
+                                        <td className="border px-4 py-2">{log?.email}</td>
+                                        <td className="border px-4 py-2">{log?.type}</td>
+                                        <td className="border px-4 py-2">{log?.sentTime}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+
 
             {!excelUpload && sendEmail && (
                 <div className="">

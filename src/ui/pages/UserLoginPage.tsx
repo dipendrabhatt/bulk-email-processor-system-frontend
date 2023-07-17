@@ -31,7 +31,6 @@ export const UserLoginPage = () => {
 
 
         if (result.data.success) {
-            console.log(result.data.message, '>>>>>>>>>>>>>>')
             toast.success(result.data.message)
             localStorage.setItem("token", result?.data?.data?.token)
             localStorage.setItem("user", JSON.stringify(result?.data?.data?.user))
@@ -40,7 +39,6 @@ export const UserLoginPage = () => {
             navigate("/home")
         }
         else {
-            console.log(result.data.message, '>>>>>>>>>>>>>>')
             setIsLoading(false)
             toast.error(result.data.message)
 
