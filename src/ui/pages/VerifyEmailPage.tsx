@@ -16,6 +16,8 @@ export const VerifyEmailPage = () => {
             const response = await AxiosInstance.get(`/auth/verify-email/${token}`)
             if (response.data.success) {
                 toast.success(response.data.message)
+                //clear local storage first
+                localStorage.clear();
                 localStorage.setItem("token", response?.data?.data?.token)
                 localStorage.setItem("user", JSON.stringify(response?.data?.data?.user))
                 navigate("/home")
