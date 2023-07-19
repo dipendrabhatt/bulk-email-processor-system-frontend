@@ -5,7 +5,7 @@ import { toast } from "react-toastify"
 import io from 'socket.io-client'
 import AxiosInstance from "../../api"
 import { PrivateAxiosInstance } from "../../api/privateAxios"
-import url from "../../constants/url"
+// import excel from '../../config/constant/excelFile'
 
 interface Template {
     id: string,
@@ -24,9 +24,10 @@ export const Homepage = () => {
     const [emailLog, setEmailLog] = useState(false)
     const [fetchedEmailLog, setFetchedEmailLog] = useState<any>()
     const [user, setUser] = useState<any>()
+    const [socketEmailLog, setSocketEmailLog] = useState<any>()
 
     const [templates, setTemplates] = useState<Template[]>()
-    const socket = io(url.REACT_APP_BASE_URL);
+    // const socket = io(url.REACT_APP_BASE_URL);
 
     const [count, setCount] = useState(0);
 
@@ -51,6 +52,7 @@ export const Homepage = () => {
     //use effect to get token from local storage and set it to axios instance
 
     useEffect(() => {
+        setSendEmail(true)
         const token = localStorage.getItem("token")
         PrivateAxiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`
     }, [])
@@ -65,18 +67,34 @@ export const Homepage = () => {
 
     const [emailLogs, setEmailLogs] = useState([]);
 
-
     useEffect(() => {
         const user = localStorage.getItem("user") as any
         setUser(JSON.parse(user))
-        console.log("useEffect for socker")
-        // Listen for 'email-logs' event from the backend
-        socket.on('email-logs', (logs) => {
-            console.log(logs, "<<<<<<<<");
-            setEmailLogs(logs);
+    }, [])
+
+
+
+    useEffect(() => {
+
+        const socket = io("ws://localhost:4000", {
+            reconnectionDelayMax: 1000,
+            auth: {
+                token: localStorage.getItem("token")
+                    ? localStorage.getItem("token") : null,
+            },
         });
 
+        socket.emit('connection', "hello 123")
+        socket.connect()
+        // Listen for 'email-logs' event from the backend
 
+        socket.on('message', (payload) => {
+            console.log(payload, "hiiii")
+        })
+
+        socket.on('email-logs', (logs) => {
+            setEmailLogs(logs);
+        });
 
     }, []);
 
@@ -200,6 +218,7 @@ export const Homepage = () => {
                                     onClick={() => {
                                         setEmailLog(true);
                                         setSendEmail(false);
+                                        setSocketEmailLog(false)
                                     }}
                                 >
                                     Email Log
@@ -232,7 +251,15 @@ export const Homepage = () => {
                         <div className="flex items-center">
                             <ul>
                                 <li className="text-gray-600 flex align-middle mt-3 hover:text-blue-600 cursor-pointer">
-                                    <div className="relative">
+                                    <div
+                                        onClick={() => {
+                                            setSocketEmailLog(true);
+                                            setSendEmail(false);
+                                            setEmailLog(false)
+                                            setExcelUpload(false)
+                                        }}
+
+                                        className="relative">
                                         <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1">
                                             {emailLogs?.length || ''}
                                         </span>
@@ -246,47 +273,6 @@ export const Homepage = () => {
                     </div>
                 </div>
             </nav>
-
-            {fetchedEmailLog && fetchedEmailLog.length > 0 ? (
-                !excelUpload && !sendEmail ? (
-                    <div className="mx-auto">
-                        <h5 className="text-xl font-bold mb-4 flex justify-center underline mt-4 mb-8">Email Logs</h5>
-
-                        <div className="gap-4 flex justify-center">
-                            <table className="table w-full container border-collapse">
-                                <thead>
-                                    <tr className="bg-blue-200">
-                                        <th className="border px-4 py-2">S.No</th>
-                                        <th className="border px-4 py-2">Email</th>
-                                        <th className="border px-4 py-2">Status</th>
-                                        <th className="border px-4 py-2">SentTime</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {fetchedEmailLog.map((log: any, idx: number) => (
-                                        <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-100' : ''}>
-                                            <td className="border px-4 py-2">{idx + 1}</td>
-                                            <td className="border px-4 py-2">{log.email}</td>
-                                            <td className="border px-4 py-2">{log.type}</td>
-                                            <td className="border px-4 py-2">{log.sentTime}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-                ) : null
-            ) : (!excelUpload && !sendEmail ? (
-                <div className="flex justify-center items-center h-screen">
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                        <h5 className="text-xl font-bold mb-4 mt-10 flex justify-center">
-                            No Emails Sent!
-                        </h5>
-                    </div>
-                </div>
-            ) : null
-            )}
 
 
 
@@ -350,15 +336,91 @@ export const Homepage = () => {
                             Upload Excel
                         </button>
                         {/* <a
-                            href="/path/to/excel/template"
+                            href={excel}
                             className="mt-2 text-indigo-600 hover:text-indigo-800"
                             download
                         >
-                            Download Excel Template
+                            Download Excel Template Example
                         </a> */}
                     </div>
                 </div>
             )}
+
+
+            {fetchedEmailLog && fetchedEmailLog.length > 0 ? (
+                !excelUpload && !sendEmail && !socketEmailLog ? (
+                    <div className="mx-auto">
+                        <h5 className="text-xl font-bold mb-4 flex justify-center underline mt-4 mb-8">Email Logs</h5>
+
+                        <div className="gap-4 flex justify-center">
+                            <table className="table w-full container border-collapse">
+                                <thead>
+                                    <tr className="bg-blue-200">
+                                        <th className="border px-4 py-2">S.No</th>
+                                        <th className="border px-4 py-2">Email</th>
+                                        <th className="border px-4 py-2">Status</th>
+                                        <th className="border px-4 py-2">SentTime</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {fetchedEmailLog.map((log: any, idx: number) => (
+                                        <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-100' : ''}>
+                                            <td className="border px-4 py-2">{idx + 1}</td>
+                                            <td className="border px-4 py-2">{log.email}</td>
+                                            <td className="border px-4 py-2">{log.type}</td>
+                                            <td className="border px-4 py-2">{log.sentTime}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                ) : null
+            ) : (!excelUpload && !sendEmail && !socketEmailLog ? (
+                <div className="flex justify-center items-center h-screen">
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                        <h5 className="text-xl font-bold mb-4 mt-10 flex justify-center">
+                            No Emails Sent!
+                        </h5>
+                    </div>
+                </div>
+            ) : null
+            )}
+
+
+            {socketEmailLog && !emailLog && !excelUpload && !sendEmail ? (
+                <div className="mx-auto">
+                    <h5 className="text-xl font-bold mb-4 flex justify-center underline mt-4 mb-8">Email Logs</h5>
+
+                    <div className="gap-4 flex justify-center">
+                        <table className="table w-full container border-collapse">
+
+                            <thead>
+                                <tr className="bg-blue-200">
+                                    <th className="border px-4 py-2">S.No</th>
+                                    <th className="border px-4 py-2">Email</th>
+                                    <th className="border px-4 py-2">Status</th>
+                                    <th className="border px-4 py-2">SentTime</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {emailLogs?.map((log: any, idx: number) => (
+                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-100' : ''}>
+                                        <td className="border px-4 py-2">{idx + 1}</td>
+                                        <td className="border px-4 py-2">{log.email}</td>
+                                        <td className="border px-4 py-2">{log.type}</td>
+                                        <td className="border px-4 py-2">{log.sentTime}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : (
+                ''
+            )
+            }
 
         </>
     )
