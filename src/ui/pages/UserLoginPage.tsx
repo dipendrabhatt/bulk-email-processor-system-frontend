@@ -35,7 +35,6 @@ export const UserLoginPage = () => {
             localStorage.setItem("token", result?.data?.data?.token)
             localStorage.setItem("user", JSON.stringify(result?.data?.data?.user))
             setIsLoading(false)
-
             navigate("/home")
         }
         else {

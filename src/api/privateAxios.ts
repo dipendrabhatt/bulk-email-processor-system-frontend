@@ -7,6 +7,6 @@ export const PrivateAxiosInstance = axios.create({
     baseURL: url.REACT_APP_BASE_URL,
     timeout: 10000,
     headers: {
-        Authorization: `Bearer ${token}`,
     },
+
 })
